@@ -1,6 +1,8 @@
 # Terminal Kanban Board
 
-## **Goal**: A purely local, keyboard-driven (Vim + Arrows) task management board built with Elm-architecture UI and a robust SQLite data layer.
+## **Goal**: 
+
+A purely local, keyboard-driven (Vim + Arrows) task management board built with Elm-architecture UI and a robust SQLite data layer.
 
 ## **Constraints**: 
 
