@@ -1,6 +1,8 @@
-##**Goal**: A purely local, keyboard-driven (Vim + Arrows) task management board built with Elm-architecture UI and a robust SQLite data layer.
+# Terminal Kanban Board
 
-##**Constraints**: 
+## **Goal**: A purely local, keyboard-driven (Vim + Arrows) task management board built with Elm-architecture UI and a robust SQLite data layer.
+
+## **Constraints**: 
 
 * Fixed columns layout (Todo, Doing, Done).
 
@@ -8,7 +10,7 @@
 
 * Data layer must be fully abstracted via interfaces.
 
-##SQLite Schema (ERD)
+## SQLite Schema (ERD)
 
 ```SQL
 CREATE TABLE tasks (
