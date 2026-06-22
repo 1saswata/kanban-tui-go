@@ -1,12 +1,22 @@
 package kanban
 
 import (
+	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 type Status string
+
+const (
+	StatusTodo  Status = "TODO"
+	StatusDoing Status = "DOING"
+	StatusDone  Status = "DONE"
+)
+
+var ErrTaskNotFound = errors.New("task not found")
 
 type Task struct {
 	ID          uuid.UUID `json:"id" db:"id"`
@@ -18,8 +28,8 @@ type Task struct {
 }
 
 type TaskStore interface {
-	GetTasks() []Task
-	CreateTask(Task) error
-	UpdateTaskStatus(uuid.UUID, Status) error
-	DeleteTask(uuid.UUID) error
+	GetTasks(ctx context.Context) ([]Task, error)
+	CreateTask(ctx context.Context, t Task) error
+	UpdateTaskStatus(ctx context.Context, id uuid.UUID, s Status) error
+	DeleteTask(ctx context.Context, id uuid.UUID) error
 }
