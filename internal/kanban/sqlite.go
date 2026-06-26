@@ -19,6 +19,9 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err = conn.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to connect to database - %w", err)
+	}
 	sqlString := `CREATE TABLE IF NOT EXISTS tasks (
 		id TEXT PRIMARY KEY,
 		title TEXT NOT NULL,
