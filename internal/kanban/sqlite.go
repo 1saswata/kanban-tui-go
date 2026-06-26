@@ -3,6 +3,7 @@ package kanban
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,18 +39,21 @@ func (ss *SQLiteStore) GetTasks(ctx context.Context) ([]Task, error) {
 		FROM tasks;`
 	rows, err := ss.db.QueryContext(ctx, sqlString)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get tasks query failed - %w", err)
 	}
 	defer rows.Close()
-	tasks := []Task{}
-	i := 0
+	var tasks []Task
 	for rows.Next() {
-		err = rows.Scan(&tasks[i].ID, &tasks[i].Title, &tasks[i].Description,
-			&tasks[i].Status, &tasks[i].CreatedAt, &tasks[i].UpdatedAt)
+		var t Task
+		err = rows.Scan(&t.ID, &t.Title, &t.Description, &t.Status,
+			&t.CreatedAt, &t.UpdatedAt)
 		if err != nil {
-			return tasks, err
+			return nil, fmt.Errorf("scan task failed - %w", err)
 		}
-		i++
+		tasks = append(tasks, t)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error in row iteration - %w", err)
 	}
 	return tasks, nil
 }
@@ -60,24 +64,38 @@ func (ss *SQLiteStore) CreateTask(ctx context.Context, t Task) error {
 	values(?, ?, ?, ?, ?, ?)`, t.ID, t.Title, t.Description, t.Status,
 		t.CreatedAt, t.UpdatedAt)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create task: %w", err)
 	}
 	return nil
 }
 
 func (ss *SQLiteStore) UpdateTaskStatus(ctx context.Context, id uuid.UUID, s Status) error {
-	_, err := ss.db.ExecContext(ctx, `UPDATE tasks SET
+	res, err := ss.db.ExecContext(ctx, `UPDATE tasks SET
 	status = ?, updated_at = ? WHERE id = ? `, s, time.Now(), id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update - %w", err)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve rows effected - %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrTaskNotFound
 	}
 	return nil
 }
 
 func (ss *SQLiteStore) DeleteTask(ctx context.Context, id uuid.UUID) error {
-	_, err := ss.db.ExecContext(ctx, `DELETE FROM tasks WHERE id = ?`, id)
+	res, err := ss.db.ExecContext(ctx, `DELETE FROM tasks WHERE id = ?`, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete - %w", err)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve rows effected - %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrTaskNotFound
 	}
 	return nil
 }
