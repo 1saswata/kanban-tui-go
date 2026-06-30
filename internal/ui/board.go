@@ -2,23 +2,30 @@ package ui
 
 import (
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/1saswata/kanban-tui-go/internal/kanban"
 )
 
 type Board struct {
 	TaskStore kanban.TaskStore
+	Columns   []Column
 }
 
-func InitBoard(ts kanban.TaskStore) Board {
-	return Board{TaskStore: ts}
+func InitBoard(ts kanban.TaskStore) *Board {
+	return &Board{TaskStore: ts}
 }
 
-func (b Board) Init() tea.Cmd {
+func (b *Board) Init() tea.Cmd {
+	b.Columns = []Column{
+		NewColumn(kanban.StatusTodo),
+		NewColumn(kanban.StatusDoing),
+		NewColumn(kanban.StatusDone),
+	}
 	return nil
 }
 
-func (b Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -29,9 +36,11 @@ func (b Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return b, nil
 }
 
-func (b Board) View() tea.View {
-	s := "Kanban Board Initializing...\nPress 'q' to quit."
-	v := tea.NewView(s)
+func (b *Board) View() tea.View {
+	b.Columns[0].list.View()
+	lists := lipgloss.JoinHorizontal(lipgloss.Top, b.Columns[0].list.View(),
+		b.Columns[1].list.View(), b.Columns[2].list.View())
+	v := tea.NewView(lists)
 	v.AltScreen = true
 	return v
 }
