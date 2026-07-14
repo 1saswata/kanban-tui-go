@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+
+	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
@@ -11,7 +14,10 @@ type Board struct {
 	TaskStore kanban.TaskStore
 	Columns   []Column
 	Focused   int8
+	err       error
 }
+
+type errMsg error
 
 func InitBoard(ts kanban.TaskStore) *Board {
 	b := &Board{TaskStore: ts}
@@ -25,11 +31,29 @@ func InitBoard(ts kanban.TaskStore) *Board {
 }
 
 func (b *Board) Init() tea.Cmd {
-	return nil
+	return fetchTasks(b.TaskStore)
 }
 
 func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case errMsg:
+		b.err = error(msg)
+		return b, nil
+	case tasksLoadedMsg:
+		b.Columns = []Column{
+			NewColumn(kanban.StatusTodo),
+			NewColumn(kanban.StatusDoing),
+			NewColumn(kanban.StatusDone),
+		}
+		b.Focused = 0
+		tasks := make(map[kanban.Status][]list.Item)
+		for _, task := range msg {
+			tasks[task.Status] = append(tasks[task.Status], taskItem{task: task})
+		}
+		b.Columns[0].list.SetItems(tasks[kanban.StatusTodo])
+		b.Columns[1].list.SetItems(tasks[kanban.StatusDoing])
+		b.Columns[2].list.SetItems(tasks[kanban.StatusDone])
+		return b, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "left", "h":
@@ -48,8 +72,14 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (b *Board) View() tea.View {
+	styleError := lipgloss.NewStyle().Foreground(lipgloss.Red).Bold(true).
+		Padding(0, 1)
 	styleFocused := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
 	styleUnfocused := lipgloss.NewStyle().Border(lipgloss.HiddenBorder())
+	if b.err != nil {
+		return tea.NewView(styleError.Render(fmt.Sprintf(
+			"Fatal Error: %v\nPress q to quit", b.err)))
+	}
 	var lists [3]string
 	for i, c := range b.Columns {
 		if i == int(b.Focused) {
