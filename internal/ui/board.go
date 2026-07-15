@@ -40,20 +40,14 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		b.err = error(msg)
 		return b, nil
 	case tasksLoadedMsg:
-		b.Columns = []Column{
-			NewColumn(kanban.StatusTodo),
-			NewColumn(kanban.StatusDoing),
-			NewColumn(kanban.StatusDone),
-		}
-		b.Focused = 0
 		tasks := make(map[kanban.Status][]list.Item)
 		for _, task := range msg {
 			tasks[task.Status] = append(tasks[task.Status], taskItem{task: task})
 		}
-		b.Columns[0].list.SetItems(tasks[kanban.StatusTodo])
-		b.Columns[1].list.SetItems(tasks[kanban.StatusDoing])
-		b.Columns[2].list.SetItems(tasks[kanban.StatusDone])
-		return b, nil
+		msgTODO := b.Columns[0].list.SetItems(tasks[kanban.StatusTodo])
+		msgDOING := b.Columns[1].list.SetItems(tasks[kanban.StatusDoing])
+		msgDONE := b.Columns[2].list.SetItems(tasks[kanban.StatusDone])
+		return b, tea.Batch(msgTODO, msgDOING, msgDONE)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "left", "h":
