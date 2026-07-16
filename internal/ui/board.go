@@ -48,6 +48,8 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msgDOING := b.Columns[1].list.SetItems(tasks[kanban.StatusDoing])
 		msgDONE := b.Columns[2].list.SetItems(tasks[kanban.StatusDone])
 		return b, tea.Batch(msgTODO, msgDOING, msgDONE)
+	case tasksUpdatedMsg:
+		return b, fetchTasks(b.TaskStore)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "left", "h":
@@ -58,6 +60,18 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return b, nil
 		case "ctrl+c", "q", "esc":
 			return b, tea.Quit
+		case "enter":
+			item := b.Columns[b.Focused].list.SelectedItem()
+			if item == nil {
+				return b, nil
+			}
+			task, ok := item.(taskItem)
+			if !ok {
+				return b, func() tea.Msg {
+					return errMsg(fmt.Errorf("error getting current task"))
+				}
+			}
+			return b, moveTask(b.TaskStore, task.task.ID, task.task.Status)
 		}
 	}
 	var cmd tea.Cmd
