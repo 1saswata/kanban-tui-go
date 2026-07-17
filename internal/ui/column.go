@@ -6,6 +6,7 @@ import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 	"github.com/1saswata/kanban-tui-go/internal/kanban"
+	"github.com/google/uuid"
 )
 
 const listHeight = 20
@@ -26,6 +27,8 @@ func NewColumn(status kanban.Status) Column {
 
 type tasksLoadedMsg []kanban.Task
 
+type tasksUpdatedMsg struct{}
+
 type taskItem struct {
 	task kanban.Task
 }
@@ -39,7 +42,7 @@ func (t taskItem) Description() string {
 }
 
 func (t taskItem) FilterValue() string {
-	return ""
+	return t.task.Title
 }
 
 func fetchTasks(store kanban.TaskStore) tea.Cmd {
@@ -49,5 +52,25 @@ func fetchTasks(store kanban.TaskStore) tea.Cmd {
 			return errMsg(err)
 		}
 		return tasksLoadedMsg(t)
+	}
+}
+
+func moveTask(store kanban.TaskStore, id uuid.UUID, status kanban.Status) tea.Cmd {
+	return func() tea.Msg {
+		if status == kanban.StatusDone {
+			return nil
+		}
+		nextStatus := status
+		switch status {
+		case kanban.StatusTodo:
+			nextStatus = kanban.StatusDoing
+		case kanban.StatusDoing:
+			nextStatus = kanban.StatusDone
+		}
+		err := store.UpdateTaskStatus(context.Background(), id, nextStatus)
+		if err != nil {
+			return errMsg(err)
+		}
+		return tasksUpdatedMsg{}
 	}
 }
