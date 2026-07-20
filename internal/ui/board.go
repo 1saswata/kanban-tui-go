@@ -2,8 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
@@ -15,6 +17,8 @@ type Board struct {
 	Columns   []Column
 	Focused   int8
 	err       error
+	input     textinput.Model
+	isTyping  bool
 }
 
 type errMsg error
@@ -27,6 +31,10 @@ func InitBoard(ts kanban.TaskStore) *Board {
 		NewColumn(kanban.StatusDone),
 	}
 	b.Focused = 0
+	b.input = textinput.New()
+	b.input.Placeholder = "New Task Title"
+	b.input.SetWidth(20)
+	b.isTyping = false
 	return b
 }
 
@@ -51,27 +59,51 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tasksUpdatedMsg:
 		return b, fetchTasks(b.TaskStore)
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "left", "h":
-			b.Focused = (b.Focused - 1 + 3) % 3
-			return b, nil
-		case "l", "right":
-			b.Focused = (b.Focused + 1 + 3) % 3
-			return b, nil
-		case "ctrl+c", "q", "esc":
-			return b, tea.Quit
-		case "enter":
-			item := b.Columns[b.Focused].list.SelectedItem()
-			if item == nil {
+		if !b.isTyping {
+			switch msg.String() {
+			case "left", "h":
+				b.Focused = (b.Focused - 1 + 3) % 3
 				return b, nil
-			}
-			task, ok := item.(taskItem)
-			if !ok {
-				return b, func() tea.Msg {
-					return errMsg(fmt.Errorf("error getting current task"))
+			case "l", "right":
+				b.Focused = (b.Focused + 1 + 3) % 3
+				return b, nil
+			case "ctrl+c", "q", "esc":
+				return b, tea.Quit
+			case "enter":
+				item := b.Columns[b.Focused].list.SelectedItem()
+				if item == nil {
+					return b, nil
 				}
+				task, ok := item.(taskItem)
+				if !ok {
+					return b, func() tea.Msg {
+						return errMsg(fmt.Errorf("error getting current task"))
+					}
+				}
+				return b, moveTask(b.TaskStore, task.task.ID, task.task.Status)
+			case "n":
+				b.isTyping = true
+				return b, b.input.Focus()
 			}
-			return b, moveTask(b.TaskStore, task.task.ID, task.task.Status)
+		} else {
+			switch msg.String() {
+			case "enter":
+				val := b.input.Value()
+				b.isTyping = false
+				b.input.Reset()
+				if strings.TrimSpace(val) == "" {
+					return b, nil
+				}
+				return b, createTask(b.TaskStore, val)
+			case "esc":
+				b.input.Reset()
+				b.isTyping = false
+				return b, nil
+			default:
+				var cmd tea.Cmd
+				b.input, cmd = b.input.Update(msg)
+				return b, cmd
+			}
 		}
 	}
 	var cmd tea.Cmd
@@ -97,6 +129,10 @@ func (b *Board) View() tea.View {
 		}
 	}
 	list := lipgloss.JoinHorizontal(lipgloss.Top, lists[0], lists[1], lists[2])
+	if b.isTyping {
+		input := b.input.View()
+		list = lipgloss.JoinVertical(lipgloss.Left, list, input)
+	}
 	v := tea.NewView(lipgloss.NewStyle().Margin(1, 0, 2, 4).Render(list))
 	v.AltScreen = true
 	return v

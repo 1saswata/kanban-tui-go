@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"time"
 
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
@@ -68,6 +69,23 @@ func moveTask(store kanban.TaskStore, id uuid.UUID, status kanban.Status) tea.Cm
 			nextStatus = kanban.StatusDone
 		}
 		err := store.UpdateTaskStatus(context.Background(), id, nextStatus)
+		if err != nil {
+			return errMsg(err)
+		}
+		return tasksUpdatedMsg{}
+	}
+}
+
+func createTask(store kanban.TaskStore, title string) tea.Cmd {
+	return func() tea.Msg {
+		task := kanban.Task{
+			ID:        uuid.New(),
+			Title:     title,
+			Status:    kanban.StatusTodo,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		err := store.CreateTask(context.Background(), task)
 		if err != nil {
 			return errMsg(err)
 		}
