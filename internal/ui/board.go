@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textinput"
@@ -58,7 +59,7 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tasksUpdatedMsg:
 		return b, fetchTasks(b.TaskStore)
 	case tea.KeyMsg:
-		if b.isTyping == false {
+		if !b.isTyping {
 			switch msg.String() {
 			case "left", "h":
 				b.Focused = (b.Focused - 1 + 3) % 3
@@ -90,6 +91,9 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				val := b.input.Value()
 				b.isTyping = false
 				b.input.Reset()
+				if strings.TrimSpace(val) == "" {
+					return b, nil
+				}
 				return b, createTask(b.TaskStore, val)
 			case "esc":
 				b.input.Reset()
