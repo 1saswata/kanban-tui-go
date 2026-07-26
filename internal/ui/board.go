@@ -84,6 +84,18 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "n":
 				b.isTyping = true
 				return b, b.input.Focus()
+			case "x", "delete":
+				item := b.Columns[b.Focused].list.SelectedItem()
+				if item == nil {
+					return b, nil
+				}
+				task, ok := item.(taskItem)
+				if !ok {
+					return b, func() tea.Msg {
+						return errMsg(fmt.Errorf("error getting current task"))
+					}
+				}
+				return b, deleteTask(b.TaskStore, task.task.ID)
 			}
 		} else {
 			switch msg.String() {
