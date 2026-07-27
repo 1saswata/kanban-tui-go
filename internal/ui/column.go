@@ -56,18 +56,8 @@ func fetchTasks(store kanban.TaskStore) tea.Cmd {
 	}
 }
 
-func moveTask(store kanban.TaskStore, id uuid.UUID, status kanban.Status) tea.Cmd {
+func setTaskStatus(store kanban.TaskStore, id uuid.UUID, nextStatus kanban.Status) tea.Cmd {
 	return func() tea.Msg {
-		if status == kanban.StatusDone {
-			return nil
-		}
-		nextStatus := status
-		switch status {
-		case kanban.StatusTodo:
-			nextStatus = kanban.StatusDoing
-		case kanban.StatusDoing:
-			nextStatus = kanban.StatusDone
-		}
 		err := store.UpdateTaskStatus(context.Background(), id, nextStatus)
 		if err != nil {
 			return errMsg(err)
