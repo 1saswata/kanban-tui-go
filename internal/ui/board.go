@@ -80,7 +80,39 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return errMsg(fmt.Errorf("error getting current task"))
 					}
 				}
-				return b, moveTask(b.TaskStore, task.task.ID, task.task.Status)
+				if task.task.Status == kanban.StatusDone {
+					return b, nil
+				}
+				nextStatus := task.task.Status
+				switch task.task.Status {
+				case kanban.StatusTodo:
+					nextStatus = kanban.StatusDoing
+				case kanban.StatusDoing:
+					nextStatus = kanban.StatusDone
+				}
+				return b, setTaskStatus(b.TaskStore, task.task.ID, nextStatus)
+			case "backspace":
+				item := b.Columns[b.Focused].list.SelectedItem()
+				if item == nil {
+					return b, nil
+				}
+				task, ok := item.(taskItem)
+				if !ok {
+					return b, func() tea.Msg {
+						return errMsg(fmt.Errorf("error getting current task"))
+					}
+				}
+				if task.task.Status == kanban.StatusTodo {
+					return b, nil
+				}
+				nextStatus := task.task.Status
+				switch task.task.Status {
+				case kanban.StatusDoing:
+					nextStatus = kanban.StatusTodo
+				case kanban.StatusDone:
+					nextStatus = kanban.StatusDoing
+				}
+				return b, setTaskStatus(b.TaskStore, task.task.ID, nextStatus)
 			case "n":
 				b.isTyping = true
 				return b, b.input.Focus()
