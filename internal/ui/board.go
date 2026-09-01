@@ -161,6 +161,7 @@ func (b *Board) View() tea.View {
 		}
 	}
 	list := lipgloss.JoinHorizontal(lipgloss.Top, lists[0], lists[1], lists[2])
+	list = lipgloss.JoinHorizontal(lipgloss.Top, list, b.renderDetailView())
 	if b.isTyping {
 		input := b.input.View()
 		list = lipgloss.JoinVertical(lipgloss.Left, list, input)
@@ -178,4 +179,16 @@ func (b *Board) getSelectedTask() (kanban.Task, bool) {
 	}
 	ti, ok := item.(taskItem)
 	return ti.task, ok
+}
+
+func (b *Board) renderDetailView() string {
+	boxStyle := lipgloss.NewStyle().
+		Width(30).Height(10).Border(lipgloss.NormalBorder())
+	task, ok := b.getSelectedTask()
+	if !ok {
+		return boxStyle.Render("No task selected")
+	}
+	return boxStyle.Render(lipgloss.JoinVertical(
+		lipgloss.Left, "Title: "+task.Title, "Status: "+string(task.Status),
+		"Description: "+task.Description))
 }
