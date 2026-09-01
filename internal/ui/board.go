@@ -70,64 +70,52 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "ctrl+c", "q", "esc":
 				return b, tea.Quit
 			case "enter":
-				item := b.Columns[b.Focused].list.SelectedItem()
-				if item == nil {
-					return b, nil
-				}
-				task, ok := item.(taskItem)
+				task, ok := b.getSelectedTask()
 				if !ok {
 					return b, func() tea.Msg {
 						return errMsg(fmt.Errorf("error getting current task"))
 					}
 				}
-				if task.task.Status == kanban.StatusDone {
+				if task.Status == kanban.StatusDone {
 					return b, nil
 				}
-				nextStatus := task.task.Status
-				switch task.task.Status {
+				nextStatus := task.Status
+				switch task.Status {
 				case kanban.StatusTodo:
 					nextStatus = kanban.StatusDoing
 				case kanban.StatusDoing:
 					nextStatus = kanban.StatusDone
 				}
-				return b, setTaskStatus(b.TaskStore, task.task.ID, nextStatus)
+				return b, setTaskStatus(b.TaskStore, task.ID, nextStatus)
 			case "backspace":
-				item := b.Columns[b.Focused].list.SelectedItem()
-				if item == nil {
-					return b, nil
-				}
-				task, ok := item.(taskItem)
+				task, ok := b.getSelectedTask()
 				if !ok {
 					return b, func() tea.Msg {
 						return errMsg(fmt.Errorf("error getting current task"))
 					}
 				}
-				if task.task.Status == kanban.StatusTodo {
+				if task.Status == kanban.StatusTodo {
 					return b, nil
 				}
-				nextStatus := task.task.Status
-				switch task.task.Status {
+				nextStatus := task.Status
+				switch task.Status {
 				case kanban.StatusDoing:
 					nextStatus = kanban.StatusTodo
 				case kanban.StatusDone:
 					nextStatus = kanban.StatusDoing
 				}
-				return b, setTaskStatus(b.TaskStore, task.task.ID, nextStatus)
+				return b, setTaskStatus(b.TaskStore, task.ID, nextStatus)
 			case "n":
 				b.isTyping = true
 				return b, b.input.Focus()
 			case "x", "delete":
-				item := b.Columns[b.Focused].list.SelectedItem()
-				if item == nil {
-					return b, nil
-				}
-				task, ok := item.(taskItem)
+				task, ok := b.getSelectedTask()
 				if !ok {
 					return b, func() tea.Msg {
 						return errMsg(fmt.Errorf("error getting current task"))
 					}
 				}
-				return b, deleteTask(b.TaskStore, task.task.ID)
+				return b, deleteTask(b.TaskStore, task.ID)
 			}
 		} else {
 			switch msg.String() {
@@ -173,6 +161,7 @@ func (b *Board) View() tea.View {
 		}
 	}
 	list := lipgloss.JoinHorizontal(lipgloss.Top, lists[0], lists[1], lists[2])
+	list = lipgloss.JoinHorizontal(lipgloss.Top, list, b.renderDetailView())
 	if b.isTyping {
 		input := b.input.View()
 		list = lipgloss.JoinVertical(lipgloss.Left, list, input)
@@ -180,4 +169,26 @@ func (b *Board) View() tea.View {
 	v := tea.NewView(lipgloss.NewStyle().Margin(1, 0, 2, 4).Render(list))
 	v.AltScreen = true
 	return v
+}
+
+func (b *Board) getSelectedTask() (kanban.Task, bool) {
+	var ti taskItem
+	item := b.Columns[b.Focused].list.SelectedItem()
+	if item == nil {
+		return ti.task, false
+	}
+	ti, ok := item.(taskItem)
+	return ti.task, ok
+}
+
+func (b *Board) renderDetailView() string {
+	boxStyle := lipgloss.NewStyle().
+		Width(30).Height(10).Border(lipgloss.NormalBorder())
+	task, ok := b.getSelectedTask()
+	if !ok {
+		return boxStyle.Render("No task selected")
+	}
+	return boxStyle.Render(lipgloss.JoinVertical(
+		lipgloss.Left, "Title: "+task.Title, "Status: "+string(task.Status),
+		"Description: "+task.Description))
 }
