@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -13,12 +14,14 @@ import (
 )
 
 type Board struct {
-	TaskStore kanban.TaskStore
-	Columns   []Column
-	Focused   int8
-	err       error
-	input     textinput.Model
-	isTyping  bool
+	TaskStore     kanban.TaskStore
+	Columns       []Column
+	Focused       int8
+	err           error
+	input         textinput.Model
+	isTyping      bool
+	descInput     textarea.Model
+	isEditingDesc bool
 }
 
 type errMsg error
@@ -35,6 +38,10 @@ func InitBoard(ts kanban.TaskStore) *Board {
 	b.input.Placeholder = "New Task Title"
 	b.input.SetWidth(20)
 	b.isTyping = false
+	b.descInput = textarea.New()
+	b.descInput.SetHeight(20)
+	b.descInput.SetWidth(10)
+	b.isEditingDesc = false
 	return b
 }
 
