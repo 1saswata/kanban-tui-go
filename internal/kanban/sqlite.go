@@ -80,7 +80,7 @@ func (ss *SQLiteStore) UpdateTaskStatus(ctx context.Context, id uuid.UUID, s Sta
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to retrieve rows effected - %w", err)
+		return fmt.Errorf("failed to retrieve rows affected - %w", err)
 	}
 	if rowsAffected == 0 {
 		return ErrTaskNotFound
@@ -96,6 +96,23 @@ func (ss *SQLiteStore) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve rows effected - %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrTaskNotFound
+	}
+	return nil
+}
+
+func (ss *SQLiteStore) UpdateTaskDescription(ctx context.Context, id uuid.UUID,
+	desc string) error {
+	res, err := ss.db.ExecContext(ctx, `UPDATE tasks SET
+	description = ?, updated_at = ? WHERE id = ?`, desc, time.Now(), id)
+	if err != nil {
+		return fmt.Errorf("failed to update - %w", err)
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve rows affected - %w", err)
 	}
 	if rowsAffected == 0 {
 		return ErrTaskNotFound

@@ -32,4 +32,5 @@ type TaskStore interface {
 	CreateTask(ctx context.Context, t Task) error
 	UpdateTaskStatus(ctx context.Context, id uuid.UUID, s Status) error
 	DeleteTask(ctx context.Context, id uuid.UUID) error
+	UpdateTaskDescription(ctx context.Context, id uuid.UUID, desc string) error
 }
