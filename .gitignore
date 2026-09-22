@@ -19,6 +19,8 @@ profile.cov
 # --- Databases & Data ---
 # Exclude local database files as discussed
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
