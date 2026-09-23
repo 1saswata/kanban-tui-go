@@ -11,9 +11,13 @@ import (
 )
 
 func main() {
+	err := os.MkdirAll("./db", 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
 	s, err := kanban.NewSQLiteStore("./db/test.db")
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 	}
 	board := ui.InitBoard(s)
 	p := tea.NewProgram(board)
