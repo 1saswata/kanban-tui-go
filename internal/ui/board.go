@@ -39,8 +39,11 @@ func InitBoard(ts kanban.TaskStore) *Board {
 	b.input.SetWidth(20)
 	b.isTyping = false
 	b.descInput = textarea.New()
+	b.descInput.ShowLineNumbers = false
 	b.descInput.SetHeight(20)
-	b.descInput.SetWidth(10)
+	//b.descInput.SetWidth(20)
+	b.descInput.Prompt = "┃ "
+	b.descInput.Placeholder = "Write your architecture notes here..."
 	b.isEditingDesc = false
 	return b
 }
@@ -222,15 +225,17 @@ func (b *Board) getSelectedTask() (kanban.Task, bool) {
 
 func (b *Board) renderDetailView() string {
 	boxStyle := lipgloss.NewStyle().
-		Width(30).Height(10).Border(lipgloss.NormalBorder())
+		Width(35).Height(12).Border(lipgloss.NormalBorder()).Padding(1, 2)
 	task, ok := b.getSelectedTask()
 	if !ok {
 		return boxStyle.Render("No task selected")
 	}
+	header := fmt.Sprintf("Title: %s\nStatus: %s\n\nDescription:", task.Title,
+		task.Status)
 	if b.isEditingDesc {
-		return boxStyle.Render(b.descInput.View())
+		return boxStyle.Render(lipgloss.JoinVertical(lipgloss.Left, header,
+			b.descInput.View()))
 	}
 	return boxStyle.Render(lipgloss.JoinVertical(
-		lipgloss.Left, "Title: "+task.Title, "Status: "+string(task.Status),
-		"Description: "+task.Description))
+		lipgloss.Left, header, task.Description))
 }
