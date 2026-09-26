@@ -92,3 +92,14 @@ func deleteTask(store kanban.TaskStore, id uuid.UUID) tea.Cmd {
 		return tasksUpdatedMsg{}
 	}
 }
+
+func updateTaskDescription(store kanban.TaskStore,
+	id uuid.UUID, desc string) tea.Cmd {
+	return func() tea.Msg {
+		err := store.UpdateTaskDescription(context.Background(), id, desc)
+		if err != nil {
+			return errMsg(err)
+		}
+		return tasksUpdatedMsg{}
+	}
+}

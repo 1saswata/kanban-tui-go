@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -13,12 +14,14 @@ import (
 )
 
 type Board struct {
-	TaskStore kanban.TaskStore
-	Columns   []Column
-	Focused   int8
-	err       error
-	input     textinput.Model
-	isTyping  bool
+	TaskStore     kanban.TaskStore
+	Columns       []Column
+	Focused       int8
+	err           error
+	input         textinput.Model
+	isTyping      bool
+	descInput     textarea.Model
+	isEditingDesc bool
 }
 
 type errMsg error
@@ -35,6 +38,13 @@ func InitBoard(ts kanban.TaskStore) *Board {
 	b.input.Placeholder = "New Task Title"
 	b.input.SetWidth(20)
 	b.isTyping = false
+	b.descInput = textarea.New()
+	b.descInput.ShowLineNumbers = false
+	b.descInput.SetHeight(20)
+	//b.descInput.SetWidth(20)
+	b.descInput.Prompt = "┃ "
+	b.descInput.Placeholder = "Write your architecture notes here..."
+	b.isEditingDesc = false
 	return b
 }
 
@@ -59,7 +69,7 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tasksUpdatedMsg:
 		return b, fetchTasks(b.TaskStore)
 	case tea.KeyMsg:
-		if !b.isTyping {
+		if !b.isTyping && !b.isEditingDesc {
 			switch msg.String() {
 			case "left", "h":
 				b.Focused = (b.Focused - 1 + 3) % 3
@@ -116,8 +126,18 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				return b, deleteTask(b.TaskStore, task.ID)
+			case "e":
+				task, ok := b.getSelectedTask()
+				if !ok {
+					return b, func() tea.Msg {
+						return errMsg(fmt.Errorf("error getting current task"))
+					}
+				}
+				b.descInput.SetValue(task.Description)
+				b.isEditingDesc = true
+				return b, b.descInput.Focus()
 			}
-		} else {
+		} else if b.isTyping {
 			switch msg.String() {
 			case "enter":
 				val := b.input.Value()
@@ -134,6 +154,28 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			default:
 				var cmd tea.Cmd
 				b.input, cmd = b.input.Update(msg)
+				return b, cmd
+			}
+		} else if b.isEditingDesc {
+			switch msg.String() {
+			case "esc":
+				b.descInput.Reset()
+				b.isEditingDesc = false
+				return b, nil
+			case "ctrl+s":
+				task, ok := b.getSelectedTask()
+				if !ok {
+					return b, func() tea.Msg {
+						return errMsg(fmt.Errorf("error getting current task"))
+					}
+				}
+				val := b.descInput.Value()
+				b.descInput.Reset()
+				b.isEditingDesc = false
+				return b, updateTaskDescription(b.TaskStore, task.ID, val)
+			default:
+				var cmd tea.Cmd
+				b.descInput, cmd = b.descInput.Update(msg)
 				return b, cmd
 			}
 		}
@@ -183,12 +225,17 @@ func (b *Board) getSelectedTask() (kanban.Task, bool) {
 
 func (b *Board) renderDetailView() string {
 	boxStyle := lipgloss.NewStyle().
-		Width(30).Height(10).Border(lipgloss.NormalBorder())
+		Width(35).Height(12).Border(lipgloss.NormalBorder()).Padding(1, 2)
 	task, ok := b.getSelectedTask()
 	if !ok {
 		return boxStyle.Render("No task selected")
 	}
+	header := fmt.Sprintf("Title: %s\nStatus: %s\n\nDescription:", task.Title,
+		task.Status)
+	if b.isEditingDesc {
+		return boxStyle.Render(lipgloss.JoinVertical(lipgloss.Left, header,
+			b.descInput.View()))
+	}
 	return boxStyle.Render(lipgloss.JoinVertical(
-		lipgloss.Left, "Title: "+task.Title, "Status: "+string(task.Status),
-		"Description: "+task.Description))
+		lipgloss.Left, header, task.Description))
 }
