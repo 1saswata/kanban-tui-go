@@ -22,6 +22,8 @@ type Board struct {
 	isTyping      bool
 	descInput     textarea.Model
 	isEditingDesc bool
+	width         int
+	height        int
 }
 
 type errMsg error
@@ -68,6 +70,17 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return b, tea.Batch(cmdTODO, cmdDOING, cmdDONE)
 	case tasksUpdatedMsg:
 		return b, fetchTasks(b.TaskStore)
+	case tea.WindowSizeMsg:
+		b.width = msg.Width
+		b.height = msg.Height
+		ListHeight = b.height - 10
+		ListWidth = b.width / 5
+		b.descInput.SetWidth(ListWidth - 4)
+		b.descInput.SetHeight(ListHeight/3 - 5)
+		for i := range b.Columns {
+			b.Columns[i].list.SetSize(ListWidth, ListHeight)
+		}
+		return b, nil
 	case tea.KeyMsg:
 		if !b.isTyping && !b.isEditingDesc {
 			switch msg.String() {
@@ -188,8 +201,10 @@ func (b *Board) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (b *Board) View() tea.View {
 	styleError := lipgloss.NewStyle().Foreground(lipgloss.Red).Bold(true).
 		Padding(0, 1)
-	styleFocused := lipgloss.NewStyle().Border(lipgloss.RoundedBorder())
-	styleUnfocused := lipgloss.NewStyle().Border(lipgloss.HiddenBorder())
+	styleFocused := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).
+		Width(ListWidth)
+	styleUnfocused := lipgloss.NewStyle().Border(lipgloss.HiddenBorder()).
+		Width(ListWidth)
 	if b.err != nil {
 		return tea.NewView(styleError.Render(fmt.Sprintf(
 			"Fatal Error: %v\nPress q to quit", b.err)))
@@ -225,7 +240,7 @@ func (b *Board) getSelectedTask() (kanban.Task, bool) {
 
 func (b *Board) renderDetailView() string {
 	boxStyle := lipgloss.NewStyle().
-		Width(35).Height(12).Border(lipgloss.NormalBorder()).Padding(1, 2)
+		Width(ListWidth).Height(ListHeight/2).Border(lipgloss.NormalBorder()).Padding(1, 2)
 	task, ok := b.getSelectedTask()
 	if !ok {
 		return boxStyle.Render("No task selected")
