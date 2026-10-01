@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-const listHeight = 20
-const listWidth = 30
+var ListHeight = 20
+var ListWidth = 30
 
 type Column struct {
 	list   list.Model
@@ -19,7 +19,7 @@ type Column struct {
 }
 
 func NewColumn(status kanban.Status) Column {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), listWidth, listHeight)
+	l := list.New([]list.Item{}, list.NewDefaultDelegate(), ListWidth, ListHeight)
 	l.Title = string(status)
 	l.SetShowStatusBar(false)
 	l.SetShowHelp(false)
